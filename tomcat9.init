@@ -1,0 +1,86 @@
+#!/bin/bash
+#set -x
+# This is the init script for starting up the
+#  Apache Tomcat server
+#
+# chkconfig: 345 91 10
+# description: Starts and stops the Tomcat daemon.
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Get config.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "${NETWORKING}" = "no" ] && exit 0
+
+ECHO=/bin/echo
+#JAVA_HOME=/usr/lib/jvm/jre-1.7.0-openjdk.x86_64/
+JAVA_HOME=$(ls -ltr $(ls -ltr $(which java) | awk '{print $NF}') | awk '{print $NF}')
+TOMCAT_USER=tomcat
+TOMCAT_HOME=/opt/tomcat/
+TOMCAT_START_SCRIPT=$TOMCAT_HOME/bin/startup.sh
+TOMCAT_STOP_SCRIPT=$TOMCAT_HOME/bin/shutdown.sh
+
+start(){
+   $ECHO -n "Starting Tomcat service:"
+   su - $TOMCAT_USER -c "$TOMCAT_START_SCRIPT &"
+   $ECHO "."
+}
+
+stop(){
+   $ECHO -n "Shutting down tomcat: "
+   $ECHO "."
+   while [ "$(ps -fu ${TOMCAT_USER} | grep java | grep ${TOMCAT_HOME} | wc -l)" -gt "0" ]; do
+      su - $TOMCAT_USER -c "$TOMCAT_STOP_SCRIPT 60 -force &"
+      sleep 100;
+      while [ "$(ps -fu ${TOMCAT_USER} | grep java | grep ${TOMCAT_HOME} | wc -l)" -gt "0" ]; do
+         $ECHO -n "Process is still RUNNING"
+         $ECHO "."
+         $ECHO -n "Terminating the JAVA Process"
+         $ECHO "."
+         ps -fu ${TOMCAT_USER} | grep java | grep ${TOMCAT_HOME} | awk '{print $2}' | xargs -i kill -9 {}
+         while [ "$(ps -fu ${TOMCAT_USER} | grep java | grep ${TOMCAT_HOME} | wc -l)" -gt "0" ]; do
+            $ECHO -n "The process is still not down and must be terminated manually"
+            $ECHO "."
+            exit 1
+         done
+      done
+      $ECHO "."
+   done
+}
+
+status(){
+    numproc=`ps -ef | grep catalina | grep -v "grep catalina" | wc -l`
+    if [ $numproc -gt 0 ]; then
+       $ECHO "Tomcat is running..."
+    else
+       $ECHO "Tomcat is stopped..."
+    fi
+}
+
+restart(){
+   stop
+   start
+}
+
+# See how we were called.
+case "$1" in
+start)
+   start
+   ;;
+stop)
+   stop
+   ;;
+status)
+   status
+   ;;
+restart)
+   restart
+   ;;
+*)
+   echo $"Usage: $0 {start|stop|status|restart}"
+   exit 1
+esac
