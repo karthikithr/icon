@@ -8,7 +8,7 @@ pipeline {
     }
     stage('gitman') {
       steps {
-        git(url: 'https://github.com/karthikithr/newtest.git', branch: 'newtest', credentialsId: 'karthikithr')
+        git(url: 'https://github.com/karthikithr/rpmbuildicon.git', branch: 'rpmbuildicon', credentialsId: 'karthikithr')
       }
     }
   }
